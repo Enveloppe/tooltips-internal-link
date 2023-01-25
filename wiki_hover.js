@@ -1,4 +1,4 @@
-const blogURL = location.origin;
+const blogURL = document.querySelector('meta[name="site_url"]') ? document.querySelector('meta[name="site_url"]').content : location.origin;
 let position = ['top', 'right', 'bottom', 'left'];
 try {
     const tip = tippy(`.md-content a[href^="${blogURL}"]`, {
@@ -23,6 +23,7 @@ try {
                             const encodedImage = brokenImage[i];
                             encodedImage.src = decodeURI(decodeURI(encodedImage.src));
                             //replace broken image with encoded image in first para
+                            encodedImage.src = encodedImage.src.replace(location.origin, blogURL);
                         }
                     }
                     const element1 = document.querySelector(`[id^="tippy"]`);
