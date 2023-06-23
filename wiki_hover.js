@@ -1,9 +1,50 @@
+/**
+ * @file Wiki Hover
+ * @description Hover over a link to see the content of the link
+ * Doesn't work on mobile and header
+ * @see tippy https://atomiks.github.io/tippyjs/
+ */
+
 const blogURL = document.querySelector('meta[name="site_url"]')
   ? document.querySelector('meta[name="site_url"]').content
   : location.origin;
 let position = ["top", "right", "bottom", "left"];
+
+/**
+ * Fix broken image in the contents (first paragraph)
+ * @param {HTMLElement | null} firstPara 
+ * @returns {HTMLElement | null} firstPara
+ */
+function brokenImage(firstPara) {
+  const brokenImage = firstPara?.querySelectorAll("img");
+  if (brokenImage) {
+    for (let i = 0; i < brokenImage.length; i++) {
+      const encodedImage = brokenImage[i];
+      encodedImage.src = decodeURI(decodeURI(encodedImage.src));
+      //replace broken image with encoded image in first para
+      encodedImage.src = encodedImage.src.replace(
+        location.origin,
+        blogURL
+      );
+    }
+  }
+  return firstPara
+}
+
+/**
+ * Remove characters from the contents (first paragraph)
+ * @param {HTMLElement | null} firstPara 
+ * @returns {HTMLElement | null} firstPara
+ */
+function cleanText(firstPara) {
+  firstPara.innerText = firstPara.innerText
+    .replaceAll("↩", "")
+    .replaceAll("¶", "");
+  return firstPara
+}
+
 try {
-  const tip = tippy(`.md-content a[href^="${blogURL}"]`, {
+  const tip = tippy(`.md-content a[href^="${blogURL}"], a.footnote-ref`, {
     content: "",
     allowHTML: true,
     animation: "scale-subtle",
@@ -29,39 +70,28 @@ try {
             firstHeader.innerText = realFileName;
           }
           //broken link in first para
-          const brokenImage = firstPara.querySelectorAll("img");
-          if (brokenImage) {
-            for (let i = 0; i < brokenImage.length; i++) {
-              const encodedImage = brokenImage[i];
-              encodedImage.src = decodeURI(decodeURI(encodedImage.src));
-              //replace broken image with encoded image in first para
-              encodedImage.src = encodedImage.src.replace(
-                location.origin,
-                blogURL
-              );
-            }
-          }
+          brokenImage(firstPara);
           const element1 = document.querySelector(`[id^="tippy"]`);
           if (element1) {
             element1.classList.add("tippy");
           }
           const partOfText = instance.reference.href.replace(/.*#/, "#");
+          let toDisplay = firstPara;
           if (partOfText.startsWith("#")) {
             firstPara = doc.querySelector(
               `[id="${partOfText.replace("#", "")}"]`
             );
-
             if (firstPara.tagName.startsWith("H")) {
-              firstPara = firstPara.nextElementSibling;
-            } else {
-              firstPara = firstPara.innerText
-                .replaceAll("↩", "")
-                .replaceAll("¶", "");
+              instance.hide();
+              instance.destroy();
+              return;
             }
-            if (firstPara.innerText.replace(partOfText).length === 0) {
+            else if (firstPara.innerText.replace(partOfText).length === 0) {
               firstPara = doc.querySelector("div.citation");
+              toDisplay = firstPara;
+            } else {
+              toDisplay = cleanText(firstPara).innerText;
             }
-
             instance.popper.style.height = "auto";
           } else {
             const height = Math.floor(
@@ -80,7 +110,7 @@ try {
           instance.popper.placement =
             position[Math.floor(Math.random() * position.length)];
           if (firstPara.innerText.length > 0) {
-            instance.setContent(firstPara);
+            instance.setContent(toDisplay);
           } else {
             firstPara = doc.querySelector("article");
             instance.reference.href.replace(/.*#/, "#");
