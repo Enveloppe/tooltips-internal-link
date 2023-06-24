@@ -10,10 +10,10 @@ const blogURL = document.querySelector('meta[name="site_url"]')
   : location.origin;
 let position = ["top", "right", "bottom", "left"];
 
-/**
- * Fix broken image in the contents (first paragraph)
- * @param {HTMLElement | null} firstPara 
- * @returns {HTMLElement | null} firstPara
+/** 
+ * @description Replace broken image with encoded image in first para
+ * @param {Element} firstPara
+ * @returns {Element} firstPara
  */
 function brokenImage(firstPara) {
   const brokenImage = firstPara?.querySelectorAll("img");
@@ -31,10 +31,12 @@ function brokenImage(firstPara) {
   return firstPara
 }
 
+
+
 /**
- * Remove characters from the contents (first paragraph)
- * @param {HTMLElement | null} firstPara 
- * @returns {HTMLElement | null} firstPara
+ * Strip text of first para of unwanted characters
+ * @param {Element} firstPara 
+ * @returns {Element} firstPara
  */
 function cleanText(firstPara) {
   firstPara.innerText = firstPara.innerText
@@ -44,7 +46,7 @@ function cleanText(firstPara) {
 }
 
 try {
-  const tip = tippy(`.md-content a[href^="${blogURL}"], a.footnote-ref`, {
+  tippy(`.md-content a[href^="${blogURL}"], a.footnote-ref, a[href^="./"]`, {
     content: "",
     allowHTML: true,
     animation: "scale-subtle",
@@ -57,7 +59,31 @@ try {
         .then((response) => response.text())
         .then((html) => {
           const parser = new DOMParser();
-          const doc = parser.parseFromString(html, "text/html");
+          return parser.parseFromString(html, "text/html");
+        })
+        .then((doc) => {
+          //create section for each content after header
+          const headers = doc.querySelectorAll("h1, h2, h3, h4, h5, h6");
+          headers.forEach(function (header) {
+            const div = doc.createElement("div");
+            const headerName = header.id || header.innerText.split("\n")[0].toLowerCase().replaceAll(" ", "-");
+            div.classList.add(headerName);
+            let nextElement = header.nextElementSibling;
+            while (nextElement && !nextElement.matches("h1, h2, h3, h4, h5, h6")) {
+              div.appendChild(nextElement);
+              nextElement = nextElement.nextElementSibling;
+            }
+            header.parentNode.insertBefore(div, header.nextSibling);
+          });
+          return doc;
+        })
+        //inject head into doc
+        .then((doc) => {
+          if (location.href.replace(location.hash, "") === instance.reference.href) {
+            instance.hide();
+            instance.destroy();
+            return;
+          }
           let firstPara = doc.querySelector("article");
           const firstHeader = doc.querySelector("h1");
           if (firstHeader && firstHeader.innerText === "Index") {
@@ -70,23 +96,25 @@ try {
             firstHeader.innerText = realFileName;
           }
           //broken link in first para
-          brokenImage(firstPara);
+          firstPara = brokenImage(firstPara);
           const element1 = document.querySelector(`[id^="tippy"]`);
           if (element1) {
             element1.classList.add("tippy");
           }
           const partOfText = instance.reference.href.replace(/.*#/, "#");
           let toDisplay = firstPara;
+          let displayType;
           if (partOfText.startsWith("#")) {
             firstPara = doc.querySelector(
               `[id="${partOfText.replace("#", "")}"]`
             );
-            if (firstPara.tagName.startsWith("H")) {
-              instance.hide();
-              instance.destroy();
-              return;
-            }
-            else if (firstPara.innerText.replace(partOfText).length === 0) {
+            if (firstPara.tagName.includes("H")) {
+              const articleDOM = doc.createElement("article");
+              articleDOM.classList.add("md-content__inner", "md-typeset");
+              articleDOM.appendChild(doc.querySelector(`div.${partOfText.replace("#", "")}`));
+              toDisplay = articleDOM;
+              firstPara = toDisplay;
+            } else if (firstPara.innerText.replace(partOfText).length === 0) {
               firstPara = doc.querySelector("div.citation");
               toDisplay = firstPara;
             } else {
@@ -97,20 +125,19 @@ try {
             const height = Math.floor(
               firstPara.innerText.split(" ").length / 100
             );
-            if (height < 10 && height > 3) {
-              instance.popper.style.height = `50%`;
-            }
-            if (height < 3) {
+            if (height < 2) {
               instance.popper.style.height = `auto`;
-            } else if (height > 10) {
-              instance.popper.style.height = `${height - 5}%`;
+            } else if (height >= 5) {
+              instance.popper.style.height = `5px`;
             }
           }
 
           instance.popper.placement =
             position[Math.floor(Math.random() * position.length)];
           if (firstPara.innerText.length > 0) {
-            instance.setContent(toDisplay);
+            if (!displayType) {
+              instance.setContent(toDisplay)
+            }
           } else {
             firstPara = doc.querySelector("article");
             instance.reference.href.replace(/.*#/, "#");
