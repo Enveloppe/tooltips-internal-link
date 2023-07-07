@@ -45,6 +45,18 @@ function cleanText(firstPara) {
   return firstPara
 }
 
+function calculateHeight(firstPara) {
+  const height = Math.floor(
+    firstPara.innerText.split(" ").length / 100
+  );
+  if (height < 2) {
+    return `auto`;
+  } else if (height >= 5) {
+    return `20rem`;
+  }
+  return `${height}rem`;
+}
+
 try {
   tippy(`.md-content a[href^="${blogURL}"], a.footnote-ref, a[href^="./"]`, {
     content: "",
@@ -65,15 +77,17 @@ try {
           //create section for each content after header
           const headers = doc.querySelectorAll("h1, h2, h3, h4, h5, h6");
           headers.forEach(function (header) {
-            const div = doc.createElement("div");
             const headerName = header.id || header.innerText.split("\n")[0].toLowerCase().replaceAll(" ", "-");
-            div.classList.add(headerName);
-            let nextElement = header.nextElementSibling;
-            while (nextElement && !nextElement.matches("h1, h2, h3, h4, h5, h6")) {
-              div.appendChild(nextElement);
-              nextElement = nextElement.nextElementSibling;
+            if (headerName.length > 0) {
+              const div = doc.createElement("div");
+              div.classList.add(headerName);
+              let nextElement = header.nextElementSibling;
+              while (nextElement && !nextElement.matches("h1, h2, h3, h4, h5, h6")) {
+                div.appendChild(nextElement);
+                nextElement = nextElement.nextElementSibling;
+              }
+              header.parentNode.insertBefore(div, header.nextSibling);
             }
-            header.parentNode.insertBefore(div, header.nextSibling);
           });
           return doc;
         })
@@ -122,14 +136,7 @@ try {
             }
             instance.popper.style.height = "auto";
           } else {
-            const height = Math.floor(
-              firstPara.innerText.split(" ").length / 100
-            );
-            if (height < 2) {
-              instance.popper.style.height = `auto`;
-            } else if (height >= 5) {
-              instance.popper.style.height = `5px`;
-            }
+            instance.popper.style.height = calculateHeight(firstPara);
           }
 
           instance.popper.placement =
@@ -137,10 +144,12 @@ try {
           if (firstPara.innerText.length > 0) {
             if (!displayType) {
               instance.setContent(toDisplay)
+              instance.popper.style.height = calculateHeight(toDisplay);
             }
           } else {
             firstPara = doc.querySelector("article");
             instance.reference.href.replace(/.*#/, "#");
+            instance.popper.style.height = calculateHeight(firstPara);
           }
         })
         .catch((error) => {
