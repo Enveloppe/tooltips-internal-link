@@ -46,8 +46,9 @@ function cleanText(firstPara) {
 }
 
 function calculateHeight(firstPara) {
+  const paragraph = firstPara ? firstPara.innerText ? firstPara.innerText : firstPara : "";
   const height = Math.floor(
-    firstPara.innerText.split(" ").length / 100
+    paragraph.split(" ").length / 100
   );
   if (height < 2) {
     return `auto`;
@@ -65,6 +66,8 @@ try {
     theme: "translucent",
     followCursor: true,
     arrow: false,
+    touch: "hold",
+    inlinePositioning: true,
     placement: position[Math.floor(Math.random() * position.length - 1)],
     onShow(instance) {
       fetch(instance.reference.href)
