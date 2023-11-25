@@ -8,9 +8,9 @@
 const blogURL = document.querySelector('meta[name="site_url"]')
   ? document.querySelector('meta[name="site_url"]').content
   : location.origin;
-let position = ["top", "right", "bottom", "left"];
+const position = ["top", "right", "bottom", "left"];
 
-/** 
+/**
  * @description Replace broken image with encoded image in first para
  * @param {Element} firstPara
  * @returns {Element} firstPara
@@ -35,7 +35,7 @@ function brokenImage(firstPara) {
 
 /**
  * Strip text of first para of unwanted characters
- * @param {Element} firstPara 
+ * @param {Element} firstPara
  * @returns {Element} firstPara
  */
 function cleanText(firstPara) {
